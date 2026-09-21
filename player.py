@@ -1,122 +1,158 @@
 import math
+from dataclasses import dataclass
+from enum import StrEnum
+from typing import Mapping, Sequence
+
 import pygame
 
 import utils
 from animation import Animation
 
-JUMP_HEIGHT = 128 
+
+class Anim(StrEnum):
+    IDLE = "idle"
+    WALK = "walk"
+    RUN = "run"
+    JUMP = "jump"
+    SLASH = "slash"
+    BACKLASH = "backlash"
+
+
+class Direction(StrEnum):
+    UP = "up"
+    DOWN = "down"
+    LEFT = "left"
+    RIGHT = "right"
+
+
+@dataclass(frozen=True)
+class Input:
+    keys: Sequence[bool]
+    mouse: Sequence[bool]
+
+    @classmethod
+    def capture(cls) -> "Input":
+        return cls(pygame.key.get_pressed(), pygame.mouse.get_pressed())
+
+    @property
+    def move_dir(self) -> Direction:
+        if self.keys[pygame.K_d] or self.keys[pygame.K_RIGHT]:
+            return Direction.RIGHT
+        if self.keys[pygame.K_a] or self.keys[pygame.K_LEFT]:
+            return Direction.LEFT
+        if self.keys[pygame.K_s] or self.keys[pygame.K_DOWN]:
+            return Direction.DOWN
+        if self.keys[pygame.K_w] or self.keys[pygame.K_UP]:
+            return Direction.UP
+        return Direction.DOWN
+
+    @property
+    def running(self) -> bool:
+        return self.keys[pygame.K_LSHIFT] or self.keys[pygame.K_RSHIFT]
+
+    @property
+    def jump(self) -> bool:
+        return self.keys[pygame.K_SPACE]
+
+    @property
+    def attack(self) -> bool:
+        return self.mouse[0]
+
+    @property
+    def backlash(self) -> bool:
+        return self.mouse[2]
+
 
 class Player(pygame.sprite.Sprite):
     def __init__(
-        self,
-        pos: pygame.Vector2,
-        speed: int,
-        animations: dict[str, Animation],
-        gravity: float = 2000.0,
-    ):
-        pygame.sprite.Sprite.__init__(self)
-
+            self,
+            pos: pygame.Vector2,
+            speed: int,
+            animations: Mapping[Anim, Animation],
+            gravity: float = 2000.0,
+    ) -> None:
+        super().__init__()
         self.animations = animations
-        self.current_anim_name = "idle"
-        self.last_anim_name = "idle"
-
+        self.current_anim = Anim.IDLE
         self.speed = speed
-        self.pos = pos
+        self.pos = pygame.Vector2(pos)
 
         self.gravity = gravity
         self.vel_y = 0.0
-        self.is_airborne = False
-        self.ground_y = pos.y
+        self.airborne = False
+        self.ground_y = self.pos.y
 
         self.image = pygame.Surface((1, 1), pygame.SRCALPHA)
         self.rect = self.image.get_rect(center=self.pos)
         self.mask = pygame.mask.from_surface(self.image)
 
-    def play(self, name: str) -> None:
-        if name != self.last_anim_name:
-            self.animations[name].reset()
-            self.last_anim_name = name
-        self.current_anim_name = name
-
-
-    def _start_jump(self) -> None:
-        self.vel_y = -math.sqrt(2.0 * self.gravity * JUMP_HEIGHT)
-        self.is_airborne = True
-        self.ground_y = self.pos.y
-
     def update(self, dt: float, *args, **kwargs) -> None:
-        keys = pygame.key.get_pressed()
-        mouse_btns = pygame.mouse.get_pressed()
+        inp = Input.capture()
+        move = utils.get_movement_direction(inp.keys)
 
-        move = utils.get_movement_direction(keys)
+        self._move(move, inp, dt)
+        self._physics(inp, dt)
+        self._animate(move, inp, dt)
 
-        direction = "down"
-        if keys[pygame.K_w] or keys[pygame.K_UP]:
-            direction = "up"
-        if keys[pygame.K_s] or keys[pygame.K_DOWN]:
-            direction = "down"
-        if keys[pygame.K_a] or keys[pygame.K_LEFT]:
-            direction = "left"
-        if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-            direction = "right"
-
-        is_running = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
-        is_jump_pressed = keys[pygame.K_SPACE]
-
-        speed = self.speed
-        if is_running:
-            speed *= 2
-
+    def _move(self, move: pygame.Vector2, inp: Input, dt: float) -> None:
+        speed = self.speed * 2 if inp.running else self.speed
         self.pos += move * speed * dt
 
-        if is_jump_pressed and not self.is_airborne:
-            self._start_jump()
+    def _physics(self, inp: Input, dt: float) -> None:
+        if inp.jump and not self.airborne:
+            self._jump()
 
-        if self.is_airborne:
+        if self.airborne:
             self.vel_y += self.gravity * dt
             self.pos.y += self.vel_y * dt
             if self.pos.y >= self.ground_y:
                 self.pos.y = self.ground_y
                 self.vel_y = 0.0
-                self.is_airborne = False
+                self.airborne = False
         else:
             self.ground_y = self.pos.y
 
         self.rect.center = self.pos
 
-        is_moving = move.length_squared() > 0
-        is_attack = mouse_btns[0]
-        is_backlash = mouse_btns[2]
-        is_spellcast = keys[pygame.K_f]
+    def _jump(self) -> None:
+        self.vel_y = -math.sqrt(2.0 * self.gravity * self.height)
+        self.airborne = True
+        self.ground_y = self.pos.y
 
-        if self.is_airborne:
-            new_anim_name = "jump"
-        elif is_backlash:
-            new_anim_name = "backlash"
-        elif is_attack:
-            new_anim_name = "slash"
-        elif is_moving and is_running:
-            new_anim_name = "run"
-        elif is_moving and not is_running:
-            if is_spellcast:
-                new_anim_name = "spellcast"
-            else:
-                new_anim_name = "walk"
-        else:
-            if is_spellcast:
-                new_anim_name = "spellcast"
-            else:
-                new_anim_name = "idle"
+    @property
+    def height(self) -> float:
+        if self.rect.height > 1:
+            return float(self.rect.height)
+        for anim in self.animations.values():
+            if anim.frames:
+                return float(anim.frames[0].get_height())
+        return 64.0
 
+    def _animate(self, move: pygame.Vector2, inp: Input, dt: float) -> None:
+        moving = move.length_squared() > 0
 
-        self.play(new_anim_name)
+        self.play(self._pick_anim(moving, inp))
+        if moving:
+            self.animations[self.current_anim].set_direction(inp.move_dir.value)
 
-        anim = self.animations[self.current_anim_name]
-        if is_moving:
-            anim.set_direction(direction)
-
-        frame = anim.update(dt)
+        frame = self.animations[self.current_anim].update(dt)
         if frame is not None:
             self.image = frame
             self.rect = self.image.get_rect(center=self.pos)
             self.mask = pygame.mask.from_surface(self.image)
+
+    def _pick_anim(self, moving: bool, inp: Input) -> Anim:
+        if self.airborne:
+            return Anim.JUMP
+        if inp.backlash:
+            return Anim.BACKLASH
+        if inp.attack:
+            return Anim.SLASH
+        if moving:
+            return Anim.RUN if inp.running else Anim.WALK
+        return Anim.IDLE
+
+    def play(self, anim: Anim) -> None:
+        if anim != self.current_anim:
+            self.animations[anim].reset()
+            self.current_anim = anim
