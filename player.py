@@ -15,7 +15,7 @@ class Anim(StrEnum):
     RUN = "run"
     JUMP = "jump"
     SLASH = "slash"
-    BACKLASH = "backlash"
+    BACKSLASH = "backslash"
 
 
 class Direction(StrEnum):
@@ -59,7 +59,7 @@ class Input:
         return self.mouse[0]
 
     @property
-    def backlash(self) -> bool:
+    def backslash(self) -> bool:
         return self.mouse[2]
 
 
@@ -144,8 +144,8 @@ class Player(pygame.sprite.Sprite):
     def _pick_anim(self, moving: bool, inp: Input) -> Anim:
         if self.airborne:
             return Anim.JUMP
-        if inp.backlash:
-            return Anim.BACKLASH
+        if inp.backslash:
+            return Anim.BACKSLASH
         if inp.attack:
             return Anim.SLASH
         if moving:

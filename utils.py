@@ -1,6 +1,11 @@
+import json
 from collections.abc import Sequence
+from functools import lru_cache
+from pathlib import Path
 
 import pygame
+
+from animation import Animation
 
 
 def get_movement_direction(keys: Sequence[bool]) -> pygame.Vector2:
@@ -73,3 +78,26 @@ def load_sprite_frames(
         result[name] = row_frames
 
     return result
+
+
+@lru_cache(maxsize=None)
+def load_sheet(path: str) -> pygame.Surface:
+    return pygame.image.load(path).convert_alpha()
+
+
+def load_animations(manifest_path: str) -> dict[str, Animation]:
+    manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
+
+    animations = {}
+    for name, meta in manifest.items():
+        sheet = load_sheet(meta["file"])
+        frames = load_sprite_frames(
+            sheet,
+            meta["frame_width"],
+            meta["frame_height"],
+            frame_count=meta["frame_count"],
+            rows=meta["rows"],
+        )
+        animations[name] = Animation(frames, meta["frame_duration"])
+
+    return animations
