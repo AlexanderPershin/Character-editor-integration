@@ -87,6 +87,7 @@ class Player(pygame.sprite.Sprite):
         is_moving = move.length_squared() > 0
         is_attack = mouse_btns[0]
         is_backlash = mouse_btns[2]
+        is_spellcast = keys[pygame.K_f]
 
         if self.is_airborne:
             new_anim_name = "jump"
@@ -97,9 +98,16 @@ class Player(pygame.sprite.Sprite):
         elif is_moving and is_running:
             new_anim_name = "run"
         elif is_moving and not is_running:
-            new_anim_name = "walk"
+            if is_spellcast:
+                new_anim_name = "spellcast"
+            else:
+                new_anim_name = "walk"
         else:
-            new_anim_name = "idle"
+            if is_spellcast:
+                new_anim_name = "spellcast"
+            else:
+                new_anim_name = "idle"
+
 
         self.play(new_anim_name)
 

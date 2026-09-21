@@ -46,7 +46,7 @@ class Game:
             "jump": Animation(self.player_jump_frames, 150),
             "slash": Animation(self.player_slash_frames, 25),
             "backlash": Animation(self.player_backslash_frames, 25),
-            "spellcast": Animation(self.player_spellcast_frames, 100),
+            "spellcast": Animation(self.player_spellcast_frames, 25),
         }
 
         self.player = Player(
