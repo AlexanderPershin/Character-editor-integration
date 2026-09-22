@@ -1,7 +1,6 @@
 import pygame
 
 import utils
-from animation import Animation
 from config import Config
 from enemy import Enemy
 from player import Player
