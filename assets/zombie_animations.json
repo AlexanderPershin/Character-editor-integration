@@ -1,0 +1,18 @@
+{
+  "run": {
+    "file": "images/zombie/walk.png",
+    "frame_width": 64,
+    "frame_height": 64,
+    "frame_count": 9,
+    "rows": 4,
+    "frame_duration": 150
+  },
+  "attack": {
+    "file": "images/zombie/slash.png",
+    "frame_width": 64,
+    "frame_height": 64,
+    "frame_count": 6,
+    "rows": 4,
+    "frame_duration": 25
+  }
+}

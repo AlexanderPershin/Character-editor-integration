@@ -18,9 +18,10 @@ class Enemy(pygame.sprite.Sprite):
             pos: pygame.Vector2,
             speed: int,
             animations: Mapping[EnemyAnim, Animation],
-            attack_range: float = 64.0,
+            attack_range: float = 78.0,
     ) -> None:
         super().__init__()
+
         self.animations = animations
         self.current_anim = EnemyAnim.RUN
         self.speed = speed
@@ -31,7 +32,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.pos)
         self.mask = pygame.mask.from_surface(self.image)
 
-    def update(self, dt: float, target: "Player | None" = None) -> None:
+    def update(self, dt: float, target: Player | None = None) -> None:
         anim = EnemyAnim.RUN
         to_target = pygame.Vector2()
 
@@ -57,6 +58,7 @@ class Enemy(pygame.sprite.Sprite):
                 self.animations[self.current_anim].set_direction(direction.value)
 
         frame = self.animations[self.current_anim].update(dt)
+
         if frame is not None:
             self.image = frame
             self.rect = self.image.get_rect(center=self.pos)

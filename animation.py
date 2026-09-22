@@ -3,10 +3,10 @@ import pygame
 
 class Animation:
     def __init__(
-        self,
-        frames: dict[str, list[pygame.Surface]] | list[pygame.Surface],
-        frame_duration_ms: int,
-        loop: bool = True,
+            self,
+            frames: dict[str, list[pygame.Surface]] | list[pygame.Surface],
+            frame_duration_ms: int,
+            loop: bool = True,
     ):
         self.frames = frames
         self.frame_duration = frame_duration_ms / 1000.0

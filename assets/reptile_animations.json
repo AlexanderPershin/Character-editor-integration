@@ -1,0 +1,18 @@
+{
+  "run": {
+    "file": "images/reptile/run.png",
+    "frame_width": 64,
+    "frame_height": 64,
+    "frame_count": 8,
+    "rows": 4,
+    "frame_duration": 150
+  },
+  "attack": {
+    "file": "images/reptile/thrust.png",
+    "frame_width": 64,
+    "frame_height": 64,
+    "frame_count": 8,
+    "rows": 4,
+    "frame_duration": 25
+  }
+}
