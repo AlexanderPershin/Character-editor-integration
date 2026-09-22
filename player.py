@@ -78,9 +78,10 @@ class Player(pygame.sprite.Sprite):
         self.pos = pygame.Vector2(pos)
 
         self.gravity = gravity
-        self.vel_y = 0.0
+
+        self.air_height = 0.0
+        self.air_vel = 0.0
         self.airborne = False
-        self.ground_y = self.pos.y
 
         self.image = pygame.Surface((1, 1), pygame.SRCALPHA)
         self.rect = self.image.get_rect(center=self.pos)
@@ -103,21 +104,16 @@ class Player(pygame.sprite.Sprite):
             self._jump()
 
         if self.airborne:
-            self.vel_y += self.gravity * dt
-            self.pos.y += self.vel_y * dt
-            if self.pos.y >= self.ground_y:
-                self.pos.y = self.ground_y
-                self.vel_y = 0.0
+            self.air_vel -= self.gravity * dt
+            self.air_height += self.air_vel * dt
+            if self.air_height <= 0.0:
+                self.air_height = 0.0
+                self.air_vel = 0.0
                 self.airborne = False
-        else:
-            self.ground_y = self.pos.y
-
-        self.rect.center = self.pos
 
     def _jump(self) -> None:
-        self.vel_y = -math.sqrt(2.0 * self.gravity * self.height)
+        self.air_vel = math.sqrt(2.0 * self.gravity * self.height)
         self.airborne = True
-        self.ground_y = self.pos.y
 
     @property
     def height(self) -> float:
@@ -138,7 +134,9 @@ class Player(pygame.sprite.Sprite):
         frame = self.animations[self.current_anim].update(dt)
         if frame is not None:
             self.image = frame
-            self.rect = self.image.get_rect(center=self.pos)
+
+            render_pos = (self.pos.x, self.pos.y - self.air_height)
+            self.rect = self.image.get_rect(center=render_pos)
             self.mask = pygame.mask.from_surface(self.image)
 
     def _pick_anim(self, moving: bool, inp: Input) -> Anim:
